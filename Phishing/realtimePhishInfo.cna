@@ -1,0 +1,50 @@
+#############################################
+#   Author: Justin Lucas (@the_bit_diddler) #
+#   Date:   September 1, 2021               #
+#############################################
+
+# Declare global variables
+global('%information');
+global('$count');
+
+# Guarantee variables are zeroed out/null'd
+%information = %();
+$count = 0;
+
+# Numeric sorting function for the callback to sort()
+sub sortTimes {
+    return $1 <=> $2;
+}
+
+on web_hit {
+    local('$currentEndpointURL');
+    local('$headless');
+
+    $currentEndpointURL = 'REPLACE_ME_WITH_YOUR_URL_PATH';
+    $headless = 0;  # Change to 1 if you plan to use agscript on your TeamServer
+
+    if ($2 hasmatch '$currentEndpointURL') {
+        $count = $count + 1;
+
+        if ($3 !in keys(%information)) {
+            %information[$3] = %( time => @($9) );
+        } else {
+            add(%information[$3]['time'], $9);
+        }
+
+        local('$currentString');
+        $currentString =  "\n";
+        $currentString .= "Host Phish Hit: " . $3 . "\n";
+        $currentString .= "Time: " . dstamp($9) . "\n";
+        $currentString .= "Current Endpoint Count: " . size(%information[$3]['time']) . "\n";
+        $currentString .= "First Click: " . dstamp(sort(&sortTimes, %information[$3]['time'])[0]) . "\n";
+        $currentString .= "Current Click: " . dstamp($9) . "\n";
+        $currentString .= "Total Phish Clicks To Date: " . $count . "\n";
+
+        if ($headless >= 0) {
+            say($currentString);
+        } else {
+            println($currentString);
+        }
+    }
+}
