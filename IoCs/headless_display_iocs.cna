@@ -1,0 +1,82 @@
+#############################################
+# Author: Justin Lucas (@the_bit_diddler)   #
+# Date:   April 01, 2021                    #
+#############################################
+
+#################################
+# Notes: This script would be a #
+#        good candidate to run  #
+#        in a headless state,   #
+#        preferably in a TMUX   #
+#        or screen session      #
+#                               #
+#        E.g. ./agscript ...    #
+#                               #
+#        From the Event Log you #
+#        may query the events:  #
+#        !hashes                #
+#################################
+global('%beaconIOCs');
+%beaconIOCs = %();
+
+
+command displayhashes {
+    println(displayIOCs());
+}
+
+
+sub displayIOCs {
+    local('$cData');
+    local('$dString');
+
+    $dString = "";
+    $dString = $dString . "\r\n\r\n";
+    $dString = $dString . "Assessment IoC Assistant:";
+    $dString = $dString . "\r\n";
+    $dString = $dString . "-------------------------";
+    $dString = $dString . "\r\n\r\n";
+    foreach $cData (keys(%beaconIOCs)) {
+        $dString = $dString . "Associated MD5 Hash: " . $cData;
+        $dString = $dString . "\r\n";
+        local('$curData');
+        foreach $curData (%beaconIOCs[$cData]) {
+            $dString = $dString . $curData . "\r\n";
+        }
+        $dString = $dString . "\r\n\r\n";
+    }
+
+    return $dString;
+}
+
+
+on beacon_indicator {
+    local('$eIP $iIP $cUser $cName $fName $fHash $fTime');
+    $eIP = binfo($1, 'external');
+    $iIP = binfo($1, 'internal');
+    $cName = $2;
+    $cUser = binfo($1, 'user');
+    $fName = split(' ', $3)[-1];
+    $fHash = split(' ', $3)[1];
+    $fTime = dstamp($4);
+
+    if (split(' ', $3)[0] hasmatch 'file') {
+        if ($fHash !in keys(%beaconIOCs)) {
+            %beaconIOCs[$fHash] = @();
+        }    
+        
+        local('$cString');
+        $cString = "Filename: " . $fName;
+        $cString = $cString . "\t" . "Datetime: " . $fTime;
+        $cString = $cString . "\t" . "Host: " . $cName;
+        $cString = $cString . "\t" . "Internal_IP: " . $iIP;
+        $cString = $cString . "\t" . "User_Owner: " . $cUser;
+    
+        add(%beaconIOCs[$fHash], $cString);
+    }
+}
+
+on event_public {
+	if ($2 ismatch '!hashes') {
+		privmsg($1, displayIOCs());
+	}
+}
