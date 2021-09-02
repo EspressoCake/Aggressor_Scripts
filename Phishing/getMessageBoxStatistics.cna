@@ -1,0 +1,55 @@
+#################################
+#   Author:     Justin Lucas    #
+#   Company:    Ingressive      #
+#   Date:       August 2, 2021  #
+#################################
+
+###################################
+#   Usage:                        #
+#       - Load this CNA after     #
+#         launching your campaign #
+#       - Help Menu ->            #
+#             General_Phish_Info  # 
+###################################    
+sub generatePopup {
+    local('$archive');
+    local('$count');
+    local('%filament');
+    local('$currentString');
+
+    $count = 0;
+    %filament = %();
+
+    foreach $archive (archives()) {
+        if ($archive['type'] eq 'webhit') {
+            if ('token' in keys($archive)) {
+                if ($archive['token'] !in keys(%filament)) {
+                    %filament[$archive['token']] = 1;
+                } else {
+                    %filament[$archive['token']] = %filament[$archive['token']] + 1;
+                }
+            }
+        }
+    }
+
+    foreach $archive (keys(%filament)) {
+        $count = $count + 1;
+    }
+
+    $currentString = "";
+    $currentString .= "Unique: " . $count . "\t";
+
+    $count = 0;
+    foreach $archive (keys(%filament)) {
+        $count = $count + %filament[$archive];
+    }
+    $currentString .= "Total:  " . $count;
+
+    show_message($currentString);
+}
+
+popup help {
+    separator();
+    item("&General_Phish_Info", { generatePopup(); });
+    separator();
+}
