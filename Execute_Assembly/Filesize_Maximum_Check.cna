@@ -1,0 +1,48 @@
+##############################
+#                            #
+# Author: @the_bit_diddler   #
+# Date:   September 17, 2021 #
+#                            #
+##############################
+
+
+beacon_command_register(
+    "sane-execute-assembly",
+    "Calculate the current size of your file for execute-assembly, and fail early if too large.",
+    "Synopsis: sane-execute-assembly /path/to/file [args...]"
+);
+
+
+alias sane-execute-assembly {
+    local('$fileSize');
+    local('$upperFileSizeBoundary');
+    local('$handle');
+    local('$file_data');
+
+    $upperFileSizeBoundary = 1000000; # User-defined, for now.
+
+    if ( size(@_) <= 1 ) {
+        beacon_command_detail("sane-execute-assembly");
+        return;
+    } else {
+        $fileSize = double(lof($2));
+
+        if ( ($fileSize >= (double($upperFileSizeBoundary) * 0.95)) || (double($upperFileSizeBoundary) == 0) ) {
+            berror($1, "Filesize is Too Large!\nCurrent Size: " . int($fileSize) . "\nCurrent Acceptable Maximum: " . int(double($upperFileSizeBoundary) * 0.95) );
+            return;
+        } else {
+            $handle = openf($2);
+            $file_data = readb($handle, -1);
+            closef($handle);
+
+            local('$executeAssemblyArgs');
+            if ( size(@_) >= 3 ) {
+                $executeAssemblyArgs = join(" ", sublist(@_, 2));
+            } else {
+                $executeAssemblyArgs = "";
+            }
+
+            bexecute_assembly($1, $2, $executeAssemblyArgs);
+        }
+    }
+}
